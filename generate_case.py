@@ -485,17 +485,93 @@ for x in cuts_tx:
 for y in cuts_ty:
     add_batten_rect(f"top_batten_y{int(y)}", "z", ZT - 3, ZT, (T + 16, W - T - 16, y - 6, y + 6))
 
-# front: floral chart, two stacked intakes on the left, PSU inlet on the lower right
-FRONT_PITCH = 3.0
+# front. The floral chart is cropped to its center medallion and scaled so the
+# whole framed design sits in the open rectangle right of the fans and above
+# the supply, with a solid margin on every side. The power button moves up
+# above the fans so it does not cut the chart. Seams are placed by hand:
+# the vertical seam stays in the gap between the fans and the supply, the
+# left horizontal seam sits between the two fans, and the right horizontal
+# seam sits just above the supply, under the chart.
+INSCRIPTION = "To my beloved sister"
+# solid plaque under the lower fan, clear of its screw holes (those sit at z ~45)
+plaque = (22.0, 142.0, 17.0, 38.0)
+
+def italic_runs(rect, text, px=0.40):
+    """Ink of an italic line, as rectangles in the plaque plane. Row 0 is up."""
+    from PIL import Image, ImageDraw, ImageFont
+    x0, x1, z0, z1 = rect
+    pad = 2.6
+    max_w = int((x1 - x0 - 2 * pad) / px)
+    max_h = int((z1 - z0 - 2 * pad) / px)
+    font_path = "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf"
+    best = None
+    lo, hi = 10, 120
+    while lo <= hi:
+        size = (lo + hi) // 2
+        font = ImageFont.truetype(font_path, size)
+        im = Image.new("L", (max_w + 8, max_h + 8), 0)
+        ImageDraw.Draw(im).text((2, 2), text, font=font, fill=255)
+        arr = np.array(im) > 140
+        ys, xs = np.where(arr)
+        if len(xs) == 0:
+            lo = size + 1
+            continue
+        w = int(xs.max() - xs.min() + 1)
+        h = int(ys.max() - ys.min() + 1)
+        if w <= max_w and h <= max_h:
+            best = arr[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+            lo = size + 1
+        else:
+            hi = size - 1
+    if best is None:
+        raise SystemExit("inscription does not fit the plaque")
+    ink = best
+    # one pixel of growth keeps the thin italic strokes open enough for a 0.4 mm nozzle
+    p = np.pad(ink, 1, constant_values=False)
+    grown = np.zeros_like(ink)
+    for dy in range(3):
+        for dx in range(3):
+            grown |= p[dy:dy + ink.shape[0], dx:dx + ink.shape[1]]
+    ink = grown
+    rows, cols = ink.shape
+    ox = x0 + ((x1 - x0) - cols * px) / 2
+    z_top = z1 - ((z1 - z0) - rows * px) / 2
+    holes = []
+    for r in range(rows):
+        c = 0
+        while c < cols:
+            if not ink[r, c]:
+                c += 1
+                continue
+            c0 = c
+            while c < cols and ink[r, c]:
+                c += 1
+            holes.append((ox + c0 * px, ox + c * px, z_top - (r + 1) * px, z_top - r * px))
+    return holes
+
+# The whole medallion, including its own border row. Centered in the 91 chart.
+_crop_n = 63
+_crop_o = (FRONT_ART.shape[0] - _crop_n) // 2
+front_mask = FRONT_ART[_crop_o:_crop_o + _crop_n, _crop_o:_crop_o + _crop_n]
+
+x_seam = 147.0
+z_seam_left = (fan_front_lo[1] + fan_front_hi[1]) / 2
+z_seam_right = ZB + PSU_H + 11.0
+# square available inside the upper-right tile, 4 mm off every cut
+win = (x_seam + 4.0, (W - T) - 4.0, z_seam_right + 4.0, H - 4.0)
+side = min(win[1] - win[0], win[3] - win[2]) - 2.0
+FRONT_PITCH = side / front_mask.shape[1]
 FRONT_HOLE = FRONT_PITCH - WEB
-# cell (45, 45) sits at x=200, z=190, which is the open area right of the
-# fans and above the supply, so the center flower is not punched out
-front_x0 = 200.0 - 45.5 * FRONT_PITCH
-front_z_top = 190.0 + 45.5 * FRONT_PITCH
+art_w = front_mask.shape[1] * FRONT_PITCH
+art_h = front_mask.shape[0] * FRONT_PITCH
+front_x0 = win[0] + ((win[1] - win[0]) - art_w) / 2
+front_z_top = win[3] - ((win[3] - win[2]) - art_h) / 2
+
 front_rect = (T, W - T, FOOT, H)
 psu_cx = (PSU_X0 + PSU_X1) / 2
 psu_cz = ZB + PSU_H / 2
-btn_x, btn_z = W - T - 28, H - 36
+# above the upper fan, on the solid strip over the intakes
+btn_x, btn_z = fan_front_hi[0] - 16.0, H - 18.0
 front_func = []
 for c in (fan_front_lo, fan_front_hi):
     front_func += fan_opening(c[0], c[1])
@@ -504,37 +580,36 @@ for sx, sz in ((-64, -32), (64, -32), (-64, 32), (64, 32)):
     front_func.append((psu_cx + sx - 2.4, psu_cx + sx + 2.4,
                        psu_cz + sz - 4.5, psu_cz + sz + 4.5))
 front_func.append((btn_x - 8.2, btn_x + 8.2, btn_z - 8.2, btn_z + 8.2))
-front_func.append((btn_x - 22, btn_x - 17, btn_z - 2.5, btn_z + 2.5))
-front_keepout = [
-    (fan_front_lo[0] - 70, fan_front_lo[0] + 70, fan_front_lo[1] - 70, fan_front_lo[1] + 70),
-    (fan_front_hi[0] - 70, fan_front_hi[0] + 70, fan_front_hi[1] - 70, fan_front_hi[1] + 70),
-    (PSU_X0 - 4, PSU_X1 + 4, ZB - 4, ZB + PSU_H + 6),
-    (btn_x - 26, btn_x + 14, btn_z - 16, btn_z + 16),
-]
-front_chart = art_holes(FRONT_ART, FRONT_PITCH, FRONT_HOLE, front_x0, front_z_top)
-front_chart = [h for h in front_chart if not rect_hit(h, front_keepout)]
+front_func.append((btn_x + 16.0, btn_x + 21.0, btn_z - 2.5, btn_z + 2.5))
+front_func.append(plaque)
+front_chart = art_holes(front_mask, FRONT_PITCH, FRONT_HOLE, front_x0, front_z_top)
 print("building front...")
-cuts_fx = intervals_free((front_rect[0], front_rect[1]),
-                         [(fan_front_lo[0] - 62, fan_front_lo[0] + 62),
-                          (PSU_X0 - 2, PSU_X1 + 2), (btn_x - 14, btn_x + 14)])
-cuts_fz = intervals_free((front_rect[2], front_rect[3]),
-                         [(fan_front_lo[1] - 62, fan_front_lo[1] + 62),
-                          (fan_front_hi[1] - 62, fan_front_hi[1] + 62),
-                          (ZB - 2, ZB + PSU_H + 4), (btn_z - 14, btn_z + 14)])
-fx_edges = [front_rect[0], *cuts_fx, front_rect[1]]
-fz_edges = [front_rect[2], *cuts_fz, front_rect[3]]
-for i in range(len(fx_edges) - 1):
-    for j in range(len(fz_edges) - 1):
-        sub = (fx_edges[i], fx_edges[i + 1], fz_edges[j], fz_edges[j + 1])
-        inset = (sub[0] + 4.0, sub[1] - 4.0, sub[2] + 4.0, sub[3] - 4.0)
-        local = [h for h in front_chart
-                 if h[0] >= inset[0] and h[1] <= inset[1]
-                 and h[2] >= inset[2] and h[3] <= inset[3]]
-        add_tile(f"front_{i}{j}", "y", 0, T, sub, front_func + local)
-for x in cuts_fx:
-    add_batten_rect(f"front_batten_x{int(x)}", "y", T, T + 3, (x - 6, x + 6, FOOT + 12, H - 12))
-for z in cuts_fz:
-    add_batten_rect(f"front_batten_z{int(z)}", "y", T, T + 3, (T + 12, W - T - 12, z - 6, z + 6))
+# four tiles. The chart lives entirely in the upper-right one.
+front_tiles = [
+    ((T, x_seam, FOOT, z_seam_left), "00"),
+    ((T, x_seam, z_seam_left, H), "01"),
+    ((x_seam, W - T, FOOT, z_seam_right), "10"),
+    ((x_seam, W - T, z_seam_right, H), "11"),
+]
+for sub, tag in front_tiles:
+    inset = (sub[0] + 3.5, sub[1] - 3.5, sub[2] + 3.5, sub[3] - 3.5)
+    local = [h for h in front_chart
+             if h[0] >= inset[0] and h[1] <= inset[1]
+             and h[2] >= inset[2] and h[3] <= inset[3]]
+    add_tile(f"front_{tag}", "y", 0, T, sub, front_func + local)
+add_batten_rect("front_batten_x", "y", T, T + 3, (x_seam - 5, x_seam + 5, FOOT + 12, H - 12))
+add_batten_rect("front_batten_z_left", "y", T, T + 3,
+                (T + 10, x_seam - 8, z_seam_left - 5, z_seam_left + 5))
+add_batten_rect("front_batten_z_right", "y", T, T + 3,
+                (x_seam + 8, W - T - 10, z_seam_right - 5, z_seam_right + 5))
+
+# one piece: 0.8 mm engraved face (letters missing) over a solid back, so the
+# line is recessed and does not pierce the panel. Prints face-down.
+ENGRAVE = 0.8
+letter_holes = italic_runs(plaque, INSCRIPTION)
+face = [mk("y", 0.0, ENGRAVE, r) for r in plate(plaque, letter_holes)]
+backer = [mk("y", ENGRAVE, T, plaque)]
+add_boxes("inscription", "y", face + backer, kind="inscription")
 
 # rear: I/O, GPU window, exhaust fan
 rear_rect = (T, W - T, FOOT, H)
@@ -623,8 +698,8 @@ backing_for("right", right, PHX_M, PHX_PITCH, -1)
 
 # grey sheet behind the front chart, so the black stitches read.
 # Slotted, and cut away where a fan or the supply sits.
-front_art_rect = (front_x0, front_x0 + FRONT_ART.shape[1] * FRONT_PITCH,
-                  front_z_top - FRONT_ART.shape[0] * FRONT_PITCH, front_z_top)
+front_art_rect = (front_x0, front_x0 + front_mask.shape[1] * FRONT_PITCH,
+                  front_z_top - front_mask.shape[0] * FRONT_PITCH, front_z_top)
 fx0, fx1 = max(front_art_rect[0], T + 14), min(front_art_rect[1], W - T - 14)
 fz0, fz1 = max(front_art_rect[2], FOOT + 14), min(front_art_rect[3], H - 14)
 back_cuts_x = []
@@ -857,6 +932,8 @@ def report():
     print(f"Fans: front intakes at z {fan_front_lo[1]:.0f} and {fan_front_hi[1]:.0f}, "
           f"lid exhausts at y {fan_top_fwd[1]:.0f} and {fan_top_cpu[1]:.0f}, "
           f"rear exhaust at z {fan_rear_c[1]:.0f}")
+    print(f"Front chart {front_mask.shape[1]} cells at {FRONT_PITCH:.2f} mm, "
+          f"x {front_x0:.0f}-{front_x0+art_w:.0f}, z {front_z_top-art_h:.0f}-{front_z_top:.0f}")
     print("Problems:", problems if problems else "none")
 
 # --------------------------------------------------------------------------
@@ -892,7 +969,10 @@ def render():
     shell_boxes = [b for it in tiles for b in it["boxes"]]
     left_boxes = [b for b in shell_boxes if b[3] <= T + 0.2]
     right_boxes = [b for b in shell_boxes if b[0] >= W - T - 0.2]
-    front_boxes = [b for b in shell_boxes if b[4] <= T + 0.2]
+    # outside skin only, so the recessed inscription stays visible
+    front_boxes = [b for b in shell_boxes if b[1] <= 0.05]
+    front_boxes += [b for e in extras if e["id"] == "inscription"
+                    for b in e["boxes"] if b[1] <= 0.05]
     rear_boxes = [b for b in shell_boxes if b[1] >= D - T - 0.2]
     top_boxes = [b for b in shell_boxes if b[2] >= ZT - 0.2]
     bot_boxes = [b for b in shell_boxes if b[5] <= ZB + 0.2]
@@ -985,8 +1065,8 @@ def render():
                "Left cheek: cat. Blue rows are the solid join.")
     save_chart(PHX_M, PHX_STILE, os.path.join(PREV, "chart_phoenix.png"),
                "Right cheek: phoenix. Blue rows are the solid joins.")
-    save_chart(FRONT_ART, (), os.path.join(PREV, "chart_front.png"),
-               "Front panel: floral chart. Fans and the PSU inlet punch through it.")
+    save_chart(front_mask, (), os.path.join(PREV, "chart_front.png"),
+               "Front panel: the floral medallion, framed in the open area.")
 
 def main():
     report()

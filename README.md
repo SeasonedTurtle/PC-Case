@@ -1,6 +1,6 @@
 # Stitch-panel micro-ATX case
 
-A PETG case for a 250 mm bed. The motherboard sits on the floor, the power supply sits in front of it, and the two cheeks are the cross-stitch charts: the cat on the left, the phoenix on the right. The front is the floral chart. The rear keeps the plain square stitch. Open cells are the vents. A grey sheet behind each chart is what makes the black stitches read.
+A PETG case for a 250 mm bed. The motherboard sits on the floor, the power supply sits in front of it, and the two cheeks are the cross-stitch charts: the cat on the left, the phoenix on the right. The front is the floral medallion, fitted whole into the open area beside the fans. The rear keeps the plain square stitch. Open cells are the vents. A grey sheet behind each chart is what makes the black stitches read.
 
 The print files are in [`flat_case_printable_parts.zip`](flat_case_printable_parts.zip) (120 STLs). [`flat_case_assembly_with_parts.stl`](flat_case_assembly_with_parts.stl) is the whole case with the parts in place. [`flat_case_assembly_shell.stl`](flat_case_assembly_shell.stl) is the plastic only.
 
@@ -13,7 +13,9 @@ Outer size is **332 × 459 × 328 mm** (width × depth × height), about 50 litr
 ![Rear, plain stitch, GPU window, I/O, exhaust](preview/rear.png)
 ![Lid, two exhausts](preview/top.png)
 
-The solid horizontal bars are the joints. They are forced-solid rows of the chart, so the seam does not cut the cat or the bird. Front, top, and rear use the same square stitch as a texture.
+The solid horizontal bars on the cheeks are the joints. They are forced-solid rows of the chart, so the seam does not cut the cat or the bird. The lid and the rear use the plain square stitch. The front chart sits in one tile, so no seam runs through it.
+
+The lower front, under the intakes, is solid. `inscription.stl` is engraved there, face out: *To my beloved sister*. The letters are recessed 0.8 mm and do not pierce the panel. Print that piece as it sits in the zip, letters toward the bed, and glue it into the matching window.
 
 ## The board does not need case screws
 
@@ -48,7 +50,7 @@ Black for the shell, posts, pins, clips, feet, battens, slot covers, GPU pads, a
 
 PETG, 0.4 mm nozzle, 0.2 mm layers, 4 walls. The art panels are 3 mm, so they are all wall and need no infill. Every STL is already oriented to print flat. No supports.
 
-The zip has the 120 parts. The two long cheek tiles are **233 mm**. Center them. A thin brim is fine; a wide skirt will not fit a 250 mm bed. Every other tile is at most 226 mm.
+The zip has the 117 parts. The two long cheek tiles are **233 mm**. Center them. A thin brim is fine; a wide skirt will not fit a 250 mm bed. Every other tile is at most 226 mm.
 
 About **3296 g** of plastic if the walls print solid. The 3 mm walls are essentially all perimeter, so that number is close to the real filament use: a bit over three 1 kg spools, almost all black, plus a little grey.
 
@@ -62,7 +64,7 @@ If the stitch holes close up, set a small positive hole-size compensation (about
 4. Glue cheek, front, rear, and lid tiles edge to edge, then glue a batten behind each seam. Battens are black. In the 3D preview they are drawn orange only so the joints are visible.
 5. Glue the grey backings behind the art.
 6. PSU goes in fan-down. The front panel has the inlet and four slotted screw holes for the screws that came with the supply. Glue the two `psu_corner_stop` blocks to the floor at the inner bottom corners of the supply so it cannot slide toward the board. Cables leave above the stops, through the 22 mm gap.
-7. Five fans, all intake-to-exhaust the same way: the two on the front pull air in, the two on the lid and the one on the rear push it out. Screw them in with the Arctic screws. The P12 Pro PST cables daisy-chain, so the two front fans can share one header and the two lid fans can share another. The 16 mm hole on the upper right of the front is a power button; the small hole beside it is an LED. Both wire to the front-panel header.
+7. Five fans, all intake-to-exhaust the same way: the two on the front pull air in, the two on the lid and the one on the rear push it out. Screw them in with the Arctic screws. The P12 Pro PST cables daisy-chain, so the two front fans can share one header and the two lid fans can share another. The 16 mm hole above the front fans is a power button; the small hole beside it is an LED. Both wire to the front-panel header.
 8. The I/O cutout is the ATX shield size, and only the outer 1.2 mm of the rear panel is the clip edge (the rest is relieved 8 mm). Sand that edge if the shield is tight.
 
 Feet are 15 mm so the supply can breathe through the slots in the floor.
