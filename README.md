@@ -1,14 +1,17 @@
 # Stitch-panel micro-ATX case
 
-A PETG case for a 250 mm bed. The motherboard sits on the floor, the power supply sits in front of it, and the two cheeks are the cross-stitch charts: the cat on the left, the phoenix on the right. Open cells are the vents. A grey sheet behind each chart is what makes the black stitches read.
+A PETG case for a 250 mm bed. The motherboard sits on the floor, the power supply sits in front of it, and the two cheeks are the cross-stitch charts: the cat on the left, the phoenix on the right. The front is the floral chart. The rear keeps the plain square stitch. Open cells are the vents. A grey sheet behind each chart is what makes the black stitches read.
+
+The print files are in [`flat_case_printable_parts.zip`](flat_case_printable_parts.zip) (120 STLs). [`flat_case_assembly_with_parts.stl`](flat_case_assembly_with_parts.stl) is the whole case with the parts in place. [`flat_case_assembly_shell.stl`](flat_case_assembly_shell.stl) is the plastic only.
 
 Outer size is **332 × 459 × 328 mm** (width × depth × height), about 50 litres. It is tall on purpose. The charts are portrait, and the stitch has to stay large enough for a 0.4 mm nozzle (cat holes 1.85 mm, phoenix holes 1.70 mm, web between holes 1.15 mm).
 
 ![Cat, left cheek](preview/side_left_cat.png)
 ![Phoenix, right cheek](preview/side_right_phoenix.png)
 
-![Front](preview/front.png)
-![Rear](preview/rear.png)
+![Front, floral chart and two intakes](preview/front.png)
+![Rear, plain stitch, GPU window, I/O, exhaust](preview/rear.png)
+![Lid, two exhausts](preview/top.png)
 
 The solid horizontal bars are the joints. They are forced-solid rows of the chart, so the seam does not cut the cat or the bird. Front, top, and rear use the same square stitch as a texture.
 
@@ -31,7 +34,7 @@ If a clip lands on a header, slide it along its channel. The left clip sits on t
 | GTX 1660 Super, dual slot | Top PCIe slot, standing up. Clearance from the rear bracket to the front fan is about **420 mm**, so any 1660 Super fits. The card's underside is only about 10 mm off the floor. |
 | Assassin X120 Refined SE | 148 mm tall. Top of the cooler is at 176 mm; the top fan's underside is at 300 mm, so the chimney above it is open. |
 | ATX 650 W, up to 180 mm long | Front-right bay, **fan down**, AC plug at the front. Bay is 150 × 178 × 86 mm. |
-| Arctic P12 Pro ×3 | Front intake (left), top exhaust over the CPU, rear exhaust above the I/O. 105 mm screw pattern. |
+| Arctic P12 Pro ×5 | Two front intakes stacked on the left, two lid exhausts (one over the CPU, one forward of it), one rear exhaust above the I/O. 105 mm screw pattern. |
 
 The rear GPU opening is one window rather than four precise slot holes. A given B560M's slot centerline is a few millimetres off a generic drawing, and a window still takes a dual-slot bracket. Test-fit the rear tiles on the installed card before the cheeks are glued. `slot_cover_x2.stl` blanks the unused part of that window. `gpu_pad_6mm`, `8mm`, and `10mm` are optional anti-sag pads.
 
@@ -39,15 +42,15 @@ The CPU pocket is placed for a typical LGA1200 socket (about 112 mm from the slo
 
 ## Colour
 
-Black for the shell, posts, pins, clips, feet, battens, slot covers, GPU pads, and the PSU stops. Grey only for the backing sheets (`back_left_*.stl`, `back_right_*.stl`). Glue a grey sheet about 3.5 mm behind each art tile. The join bars are solid, so a batten behind them does not show through as a stripe.
+Black for the shell, posts, pins, clips, feet, battens, slot covers, GPU pads, and the PSU stops. Grey only for the backing sheets (`backing_left_*.stl`, `backing_right_*.stl`, `backing_front_*.stl`). Glue a grey sheet about 3.5 mm behind each art tile. The join bars are solid, so a batten behind them does not show through as a stripe. The rear has no grey sheet. It is the plain square field, and it vents straight through.
 
 ## Print
 
 PETG, 0.4 mm nozzle, 0.2 mm layers, 4 walls. The art panels are 3 mm, so they are all wall and need no infill. Every STL is already oriented to print flat. No supports.
 
-`flat_case_printable_parts.zip` has the 116 parts. The two long cheek tiles are **233 mm**. Center them. A thin brim is fine; a wide skirt will not fit a 250 mm bed. Every other tile is at most 226 mm.
+The zip has the 120 parts. The two long cheek tiles are **233 mm**. Center them. A thin brim is fine; a wide skirt will not fit a 250 mm bed. Every other tile is at most 226 mm.
 
-About **3276 g** of plastic if the walls print solid. The 3 mm walls are essentially all perimeter, so that number is close to the real filament use: three 1 kg spools, almost all black, plus a little grey.
+About **3296 g** of plastic if the walls print solid. The 3 mm walls are essentially all perimeter, so that number is close to the real filament use: a bit over three 1 kg spools, almost all black, plus a little grey.
 
 If the stitch holes close up, set a small positive hole-size compensation (about +0.1 mm) rather than scaling the part.
 
@@ -59,7 +62,7 @@ If the stitch holes close up, set a small positive hole-size compensation (about
 4. Glue cheek, front, rear, and lid tiles edge to edge, then glue a batten behind each seam. Battens are black. In the 3D preview they are drawn orange only so the joints are visible.
 5. Glue the grey backings behind the art.
 6. PSU goes in fan-down. The front panel has the inlet and four slotted screw holes for the screws that came with the supply. Glue the two `psu_corner_stop` blocks to the floor at the inner bottom corners of the supply so it cannot slide toward the board. Cables leave above the stops, through the 22 mm gap.
-7. Fans screw in with the Arctic screws. The 16 mm hole on the upper right of the front is a power button; the small hole beside it is an LED. Both wire to the front-panel header.
+7. Five fans, all intake-to-exhaust the same way: the two on the front pull air in, the two on the lid and the one on the rear push it out. Screw them in with the Arctic screws. The P12 Pro PST cables daisy-chain, so the two front fans can share one header and the two lid fans can share another. The 16 mm hole on the upper right of the front is a power button; the small hole beside it is an LED. Both wire to the front-panel header.
 8. The I/O cutout is the ATX shield size, and only the outer 1.2 mm of the rear panel is the clip edge (the rest is relieved 8 mm). Sand that edge if the shield is tight.
 
 Feet are 15 mm so the supply can breathe through the slots in the floor.

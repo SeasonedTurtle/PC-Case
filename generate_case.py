@@ -8,7 +8,9 @@ A grey backing sheet behind each art tile makes the black stitches read.
 
 Fits: B560M, two DDR4 sticks, a dual-slot 1660 Super, Thermalright
 Assassin X120 Refined SE, an ATX 650 W gold supply up to 180 mm long,
-and Arctic P12 Pro fans (front intake, top exhaust, rear exhaust).
+and five Arctic P12 Pro fans (two front intakes, two top exhausts,
+one rear exhaust). The front carries the floral chart. The rear keeps
+the plain square stitch.
 
 Axes: X width, Y depth (front y=0, rear y=D, I/O at the rear), Z height.
 Units mm. Origin is the outside of the front-left-bottom corner.
@@ -30,6 +32,7 @@ MAX_TILE = 234.0          # cheek tiles reach ~233 mm; center those, thin brim o
 # stitch charts. row 0 is the top of the picture. True = stitch (solid).
 CAT = np.load(os.path.join(OUT, "patterns", "cat.npy"))
 PHX = np.load(os.path.join(OUT, "patterns", "phoenix.npy"))
+FRONT_ART = np.load(os.path.join(OUT, "patterns", "front.npy")).astype(bool)
 # join bars: these rows are forced solid so a seam can hide in them
 CAT_STILE = (36, 37)          # through the branches, above the cat
 PHX_STILE = (18, 19, 90, 91)  # above the wingtips and below the tail
@@ -215,15 +218,25 @@ comp["gpu"] = [(SLOT_X - GPU_T + 4, YB_REAR - 250, ZP + 2,
                 SLOT_X + 8, D - T, ZP + GPU_ABOVE)]
 comp["psu"] = [(PSU_X0, PSU_Y0, ZB, PSU_X1, PSU_Y1, ZB + PSU_H)]
 
-# fan boxes (the solid that has to clear the shell)
-fan_front_c = (T + 78.0, ZB + 78.0)          # x, z on the front wall
-fan_top_c = (CPU_X, CPU_Y)                   # x, y on the ceiling
-fan_rear_c = (BX0 + 175.0, IO_Z1 + 12 + FAN / 2)  # x, z on the rear wall
+# Five P12 mounts. The two extra fans are the upper front intake and the
+# forward lid exhaust. A third fan on the front would land on the floral
+# chart, so that one goes on the lid instead.
+# Plane coords: front/rear are (x, z), lid is (x, y). Centers are 136 mm
+# apart so a seam still fits between them.
+fan_front_lo = (T + 78.0, ZB + 78.0)
+fan_front_hi = (fan_front_lo[0], fan_front_lo[1] + 136.0)
+fan_top_cpu = (CPU_X, CPU_Y)
+fan_top_fwd = (CPU_X, CPU_Y - 140.0)
+fan_rear_c = (BX0 + 175.0, IO_Z1 + 12 + FAN / 2)
 comp["fans"] = [
-    (fan_front_c[0] - 60, T, fan_front_c[1] - 60,
-     fan_front_c[0] + 60, T + FAN_T, fan_front_c[1] + 60),
-    (fan_top_c[0] - 60, fan_top_c[1] - 60, ZT - FAN_T,
-     fan_top_c[0] + 60, fan_top_c[1] + 60, ZT),
+    (fan_front_lo[0] - 60, T, fan_front_lo[1] - 60,
+     fan_front_lo[0] + 60, T + FAN_T, fan_front_lo[1] + 60),
+    (fan_front_hi[0] - 60, T, fan_front_hi[1] - 60,
+     fan_front_hi[0] + 60, T + FAN_T, fan_front_hi[1] + 60),
+    (fan_top_cpu[0] - 60, fan_top_cpu[1] - 60, ZT - FAN_T,
+     fan_top_cpu[0] + 60, fan_top_cpu[1] + 60, ZT),
+    (fan_top_fwd[0] - 60, fan_top_fwd[1] - 60, ZT - FAN_T,
+     fan_top_fwd[0] + 60, fan_top_fwd[1] + 60, ZT),
     (fan_rear_c[0] - 60, D - T - FAN_T, fan_rear_c[1] - 60,
      fan_rear_c[0] + 60, D - T, fan_rear_c[1] + 60),
 ]
@@ -455,13 +468,16 @@ for y in cuts_by:
     add_batten_rect(f"bottom_batten_y{int(y)}", "z", FOOT - 3.0, FOOT,
                     (T + 14, W - T - 14, y - 6, y + 6))
 
-# top
+# top: two exhausts. The square stitch stays here; the floral chart is the front.
 top_rect = (T, W - T, T, D - T)
-top_holes = fan_opening(fan_top_c[0], fan_top_c[1])
-top_holes += geo_holes(top_rect, avoid=[(fan_top_c[0] - 68, fan_top_c[0] + 68,
-                                         fan_top_c[1] - 68, fan_top_c[1] + 68)])
-blocked_top_x = [(fan_top_c[0] - 68, fan_top_c[0] + 68)]
-blocked_top_y = [(fan_top_c[1] - 68, fan_top_c[1] + 68)]
+top_fans = (fan_top_cpu, fan_top_fwd)
+top_holes = []
+for c in top_fans:
+    top_holes += fan_opening(c[0], c[1])
+top_avoid = [(c[0] - 68, c[0] + 68, c[1] - 68, c[1] + 68) for c in top_fans]
+top_holes += geo_holes(top_rect, avoid=top_avoid)
+blocked_top_x = [(c[0] - 68, c[0] + 68) for c in top_fans]
+blocked_top_y = [(c[1] - 68, c[1] + 68) for c in top_fans]
 print("building lid...")
 cuts_tx, cuts_ty = emit_split("top", "z", ZT, H, top_rect, top_holes, blocked_top_x, blocked_top_y)
 for x in cuts_tx:
@@ -469,30 +485,52 @@ for x in cuts_tx:
 for y in cuts_ty:
     add_batten_rect(f"top_batten_y{int(y)}", "z", ZT - 3, ZT, (T + 16, W - T - 16, y - 6, y + 6))
 
-# front
+# front: floral chart, two stacked intakes on the left, PSU inlet on the lower right
+FRONT_PITCH = 3.0
+FRONT_HOLE = FRONT_PITCH - WEB
+# cell (45, 45) sits at x=200, z=190, which is the open area right of the
+# fans and above the supply, so the center flower is not punched out
+front_x0 = 200.0 - 45.5 * FRONT_PITCH
+front_z_top = 190.0 + 45.5 * FRONT_PITCH
 front_rect = (T, W - T, FOOT, H)
-front_holes = fan_opening(fan_front_c[0], fan_front_c[1])
-# PSU AC inlet and switch, centered on the PSU face, plus slotted screw holes
 psu_cx = (PSU_X0 + PSU_X1) / 2
 psu_cz = ZB + PSU_H / 2
-front_holes.append((psu_cx - 28, psu_cx + 28, psu_cz - 8, psu_cz + 22))
-for sx, sz in ((-64, -32), (64, -32), (-64, 32), (64, 32)):
-    front_holes.append((psu_cx + sx - 2.4, psu_cx + sx + 2.4,
-                        psu_cz + sz - 4.5, psu_cz + sz + 4.5))
-# power button and LED, upper front, clear of the fan
 btn_x, btn_z = W - T - 28, H - 36
-front_holes.append((btn_x - 8.2, btn_x + 8.2, btn_z - 8.2, btn_z + 8.2))
-front_holes.append((btn_x - 22, btn_x - 17, btn_z - 2.5, btn_z + 2.5))
-front_holes += geo_holes(front_rect, avoid=[
-    (fan_front_c[0] - 68, fan_front_c[0] + 68, fan_front_c[1] - 68, fan_front_c[1] + 68),
-    (PSU_X0 - 4, PSU_X1 + 4, ZB - 4, ZB + PSU_H + 8),
-    (btn_x - 30, btn_x + 16, btn_z - 16, btn_z + 16),
-])
+front_func = []
+for c in (fan_front_lo, fan_front_hi):
+    front_func += fan_opening(c[0], c[1])
+front_func.append((psu_cx - 28, psu_cx + 28, psu_cz - 8, psu_cz + 22))
+for sx, sz in ((-64, -32), (64, -32), (-64, 32), (64, 32)):
+    front_func.append((psu_cx + sx - 2.4, psu_cx + sx + 2.4,
+                       psu_cz + sz - 4.5, psu_cz + sz + 4.5))
+front_func.append((btn_x - 8.2, btn_x + 8.2, btn_z - 8.2, btn_z + 8.2))
+front_func.append((btn_x - 22, btn_x - 17, btn_z - 2.5, btn_z + 2.5))
+front_keepout = [
+    (fan_front_lo[0] - 70, fan_front_lo[0] + 70, fan_front_lo[1] - 70, fan_front_lo[1] + 70),
+    (fan_front_hi[0] - 70, fan_front_hi[0] + 70, fan_front_hi[1] - 70, fan_front_hi[1] + 70),
+    (PSU_X0 - 4, PSU_X1 + 4, ZB - 4, ZB + PSU_H + 6),
+    (btn_x - 26, btn_x + 14, btn_z - 16, btn_z + 16),
+]
+front_chart = art_holes(FRONT_ART, FRONT_PITCH, FRONT_HOLE, front_x0, front_z_top)
+front_chart = [h for h in front_chart if not rect_hit(h, front_keepout)]
 print("building front...")
-cuts_fx, cuts_fz = emit_split(
-    "front", "y", 0, T, front_rect, front_holes,
-    [(fan_front_c[0] - 62, fan_front_c[0] + 62), (PSU_X0 - 2, PSU_X1 + 2), (btn_x - 14, btn_x + 14)],
-    [(fan_front_c[1] - 62, fan_front_c[1] + 62), (ZB - 2, ZB + PSU_H + 4), (btn_z - 14, btn_z + 14)])
+cuts_fx = intervals_free((front_rect[0], front_rect[1]),
+                         [(fan_front_lo[0] - 62, fan_front_lo[0] + 62),
+                          (PSU_X0 - 2, PSU_X1 + 2), (btn_x - 14, btn_x + 14)])
+cuts_fz = intervals_free((front_rect[2], front_rect[3]),
+                         [(fan_front_lo[1] - 62, fan_front_lo[1] + 62),
+                          (fan_front_hi[1] - 62, fan_front_hi[1] + 62),
+                          (ZB - 2, ZB + PSU_H + 4), (btn_z - 14, btn_z + 14)])
+fx_edges = [front_rect[0], *cuts_fx, front_rect[1]]
+fz_edges = [front_rect[2], *cuts_fz, front_rect[3]]
+for i in range(len(fx_edges) - 1):
+    for j in range(len(fz_edges) - 1):
+        sub = (fx_edges[i], fx_edges[i + 1], fz_edges[j], fz_edges[j + 1])
+        inset = (sub[0] + 4.0, sub[1] - 4.0, sub[2] + 4.0, sub[3] - 4.0)
+        local = [h for h in front_chart
+                 if h[0] >= inset[0] and h[1] <= inset[1]
+                 and h[2] >= inset[2] and h[3] <= inset[3]]
+        add_tile(f"front_{i}{j}", "y", 0, T, sub, front_func + local)
 for x in cuts_fx:
     add_batten_rect(f"front_batten_x{int(x)}", "y", T, T + 3, (x - 6, x + 6, FOOT + 12, H - 12))
 for z in cuts_fz:
@@ -582,6 +620,45 @@ def backing_for(name, info, mask, pitch, x_inside_grow):
 
 backing_for("left", left, CAT_M, CAT_PITCH, +1)
 backing_for("right", right, PHX_M, PHX_PITCH, -1)
+
+# grey sheet behind the front chart, so the black stitches read.
+# Slotted, and cut away where a fan or the supply sits.
+front_art_rect = (front_x0, front_x0 + FRONT_ART.shape[1] * FRONT_PITCH,
+                  front_z_top - FRONT_ART.shape[0] * FRONT_PITCH, front_z_top)
+fx0, fx1 = max(front_art_rect[0], T + 14), min(front_art_rect[1], W - T - 14)
+fz0, fz1 = max(front_art_rect[2], FOOT + 14), min(front_art_rect[3], H - 14)
+back_cuts_x = []
+cursor = fx0
+while fx1 - cursor > 210:
+    back_cuts_x.append(cursor + 200)
+    cursor += 200
+back_cuts_z = []
+cursor = fz0
+while fz1 - cursor > 210:
+    back_cuts_z.append(cursor + 200)
+    cursor += 200
+bx_edges = [fx0, *back_cuts_x, fx1]
+bz_edges = [fz0, *back_cuts_z, fz1]
+fan_cut = [(c[0] - 68, c[0] + 68, c[1] - 68, c[1] + 68) for c in (fan_front_lo, fan_front_hi)]
+fan_cut.append((PSU_X0 - 2, PSU_X1 + 2, ZB - 2, ZB + PSU_H + 4))
+bi = 0
+for i in range(len(bx_edges) - 1):
+    for j in range(len(bz_edges) - 1):
+        rect = (bx_edges[i] + 2, bx_edges[i + 1] - 2, bz_edges[j] + 2, bz_edges[j + 1] - 2)
+        if rect[1] - rect[0] < 24 or rect[3] - rect[2] < 24:
+            continue
+        slots = []
+        z = rect[2] + 7
+        while z < rect[3] - 7:
+            slots.append((rect[0] + 6, rect[1] - 6, z, z + 5))
+            z += 11
+        # plate() treats every hole edge as a grid line, so holes must be clipped
+        # to this piece or the sheet grows out to the fan cutouts.
+        holes = clip_holes(slots + fan_cut, rect)
+        boxes = [mk("y", T + 3.5, T + 5.3, r) for r in plate(rect, holes)]
+        if boxes:
+            add_boxes(f"backing_front_{bi}", "y", boxes, kind="backing")
+            bi += 1
 
 # --------------------------------------------------------------------------
 # printed hardware that needs no metal screws
@@ -708,6 +785,12 @@ if IO_X1 > BX1 + 2 or IO_X0 < BX0:
     problems.append("I/O aperture misses the board")
 if slot_window[1] > IO_X0 - 4:
     problems.append("GPU window runs into the I/O aperture")
+for i, a in enumerate(comp["fans"]):
+    for b in comp["fans"][i + 1:]:
+        if overlap(a, b, eps=1.0):
+            problems.append("two case fans occupy the same space")
+    if a[0] < -1 or a[3] > W + 1 or a[1] < -1 or a[4] > D + 1 or a[2] < 0 or a[5] > H + 1:
+        problems.append("a case fan hangs outside the shell")
 
 # --------------------------------------------------------------------------
 QUADS = [([0, 3, 2, 1], (0, 0, -1)), ([4, 5, 6, 7], (0, 0, 1)),
@@ -769,7 +852,11 @@ def report():
     print(f"GPU clearance from rear bracket to front fan: {gpu_max:.0f} mm")
     print(f"PSU bay: {PSU_W:.0f} wide x {PSU_BAY_L-6:.0f} long x {PSU_H:.0f} tall, fan down, AC at the front")
     print(f"I/O opening z {IO_Z0:.1f}-{IO_Z1:.1f}, x {IO_X0:.1f}-{IO_X1:.1f}")
-    print(f"Stitch holes: cat {CAT_HOLE:.2f} mm, phoenix {PHX_HOLE:.2f} mm, web {WEB:.2f} mm")
+    print(f"Stitch holes: cat {CAT_HOLE:.2f} mm, phoenix {PHX_HOLE:.2f} mm, "
+          f"front {FRONT_HOLE:.2f} mm, web {WEB:.2f} mm")
+    print(f"Fans: front intakes at z {fan_front_lo[1]:.0f} and {fan_front_hi[1]:.0f}, "
+          f"lid exhausts at y {fan_top_fwd[1]:.0f} and {fan_top_cpu[1]:.0f}, "
+          f"rear exhaust at z {fan_rear_c[1]:.0f}")
     print("Problems:", problems if problems else "none")
 
 # --------------------------------------------------------------------------
@@ -898,6 +985,8 @@ def render():
                "Left cheek: cat. Blue rows are the solid join.")
     save_chart(PHX_M, PHX_STILE, os.path.join(PREV, "chart_phoenix.png"),
                "Right cheek: phoenix. Blue rows are the solid joins.")
+    save_chart(FRONT_ART, (), os.path.join(PREV, "chart_front.png"),
+               "Front panel: floral chart. Fans and the PSU inlet punch through it.")
 
 def main():
     report()
